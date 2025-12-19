@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Tạo QR VNeID (Final Fix)</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root { --primary-color: #b0151b; --secondary-color: #0f172a; --bg-color: #f1f5f9; --border-color: #e2e8f0; --radius: 12px; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-color); color: var(--secondary-color); margin: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        
+        .main-container { display: flex; flex-direction: column; background: #fff; border-radius: var(--radius); box-shadow: 0 10px 15px rgba(0,0,0,0.1); overflow: hidden; width: 100%; max-width: 1200px; }
+        
+        .preview-section { background-color: #eef2f6; padding: 40px; display: flex; justify-content: center; border-bottom: 1px solid var(--border-color); }
+        .mockup-container { position: relative; width: 100%; max-width: 850px; box-shadow: 0 20px 25px rgba(0,0,0,0.1); border-radius: 8px; overflow: hidden; background: white; line-height: 0; }
+        #anh-nen-goc { width: 100%; display: block; }
+        
+        /* QR CODE */
+        #ma-qr-dong {
+            position: absolute;
+            top: 26%; left: 2.5%; width: 22%;
+            mix-blend-mode: normal;
+            box-sizing: border-box; 
+            border-radius: 2px;
+            display: none;
+            z-index: 10;
+        }
+
+        .form-section { padding: 30px 40px; background: white; }
+        .header-title { font-size: 1.5rem; font-weight: 700; margin: 0 0 20px 0; display: flex; align-items: center; gap: 10px; }
+        .header-title span { color: var(--primary-color); }
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; }
+        .full-width { grid-column: 1 / -1; }
+        .input-group label { display: block; font-size: 0.875rem; font-weight: 600; margin-bottom: 8px; }
+        
+        .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background-color: #f8fafc; box-sizing: border-box; }
+        
+        /* --- GIẢI PHÁP CSS: Tự động in hoa khi nhập tên --- */
+        #ten-tk { text-transform: uppercase; }
+
+        .btn-group { display: flex; gap: 15px; margin-top: 10px; }
+        .btn-action { flex: 1; padding: 14px; font-weight: 600; border: none; border-radius: 8px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; color: white; transition: 0.2s; }
+        .btn-create { background-color: var(--primary-color); }
+        .btn-create:hover { background-color: #901116; }
+        .btn-download { background-color: #10b981; display: none; }
+        .btn-download:hover { background-color: #059669; }
+        .spinner { width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s infinite; display: none; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @media (max-width: 768px) { .preview-section { padding: 20px; } .form-grid { grid-template-columns: 1fr; } .btn-group { flex-direction: column; } }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <div class="preview-section">
+            <div class="mockup-container">
+                <img src="background.jpg" alt="VNeID Banner" id="anh-nen-goc">
+                <img id="ma-qr-dong" src="" alt="QR" crossorigin="anonymous">
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2 class="header-title">Cấu hình QR <span>VNeID (Final)</span></h2>
+            <div class="form-grid">
+                <div class="input-group">
+                    <label>Ngân hàng</label>
+                    <select id="ngan-hang">
+                        <option value="MB">MB Bank</option>
+                        <option value="VCB">Vietcombank</option>
+                        <option value="TCB">Techcombank</option>
+                        <option value="ICB">VietinBank</option>
+                        <option value="BIDV">BIDV</option>
+                        <option value="ACB">ACB</option>
+                        <option value="TPB">TPBank</option>
+                        <option value="VPB">VPBank</option>
+                        <option value="STB">Sacombank</option>
+                        <option value="VIB">VIB</option>
+                        <option value="NAPAS">Napas 247</option>
+                    </select>
+                </div>
+                <div class="input-group">
+                    <label>Số tài khoản</label>
+                    <input type="number" id="so-tai-khoan" placeholder="Nhập số tài khoản...">
+                </div>
+                <div class="input-group">
+                    <label>Tên chủ tài khoản</label>
+                    <input type="text" id="ten-tk" placeholder="NGUYEN VAN A">
+                </div>
+                <div class="input-group">
+                    <label>Số tiền (VNĐ)</label>
+                    <input type="number" id="tien" placeholder="50000">
+                </div>
+                <div class="input-group full-width">
+                    <label>Nội dung chuyển khoản</label>
+                    <input type="text" id="noi-dung" placeholder="Chuyen khoan">
+                </div>
+            </div>
+            
+            <div class="btn-group full-width">
+                <button class="btn-action btn-create" onclick="taoQR(this)">
+                    <span class="btn-text">TẠO QR NGAY</span><div class="spinner"></div>
+                </button>
+                <button class="btn-action btn-download" id="btn-tai-anh" onclick="taiAnhCanvas(this)">
+                    <span>TẢI ẢNH VỀ MÁY (HD)</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Đã sửa lỗi 28% thành 0.28
+        const QR_CONFIG = { 
+            top: 0.243, 
+            left: 0.009, 
+            width: 0.28 
+        };
+
+        function removeVietnameseTones(str) {
+            return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
+        }
+        
+        // --- XÓA CÁC DÒNG CODE addEventListener("input") CŨ Ở ĐÂY ---
+        // Chúng ta không can thiệp khi gõ nữa để tránh lỗi nhảy chữ.
+
+        function updateQRPosition() {
+            const qrElem = document.getElementById("ma-qr-dong");
+            qrElem.style.top = (QR_CONFIG.top * 100) + "%";
+            qrElem.style.left = (QR_CONFIG.left * 100) + "%";
+            qrElem.style.width = (QR_CONFIG.width * 100) + "%";
+            qrElem.style.display = "block";
+        }
+        window.addEventListener('resize', updateQRPosition);
+
+        function taoQR(btn) {
+            const inputs = {
+                bank: document.getElementById("ngan-hang").value,
+                acc: document.getElementById("so-tai-khoan").value,
+                amount: document.getElementById("tien").value,
+                // Lấy giá trị thô từ ô nhập liệu
+                rawName: document.getElementById("ten-tk").value,
+                rawContent: document.getElementById("noi-dung").value
+            };
+
+            if (!inputs.acc || !inputs.amount) { alert("Vui lòng nhập đủ thông tin!"); return; }
+
+            // --- XỬ LÝ DỮ LIỆU TẠI ĐÂY (Thay vì lúc gõ) ---
+            const cleanName = removeVietnameseTones(inputs.rawName).toUpperCase();
+            const cleanContent = removeVietnameseTones(inputs.rawContent);
+
+            const spinner = btn.querySelector('.spinner');
+            const btnText = btn.querySelector('.btn-text');
+            btnText.textContent = "ĐANG TẠO...";
+            spinner.style.display = "block";
+            btn.disabled = true;
+
+            // Sử dụng dữ liệu đã làm sạch để tạo Link
+            const url = `https://qr.sepay.vn/img?acc=${inputs.acc}&bank=${inputs.bank}&amount=${inputs.amount}&des=${encodeURIComponent(cleanContent)}&template=qronly&t=${Date.now()}`;
+            
+            const imgQR = document.getElementById("ma-qr-dong");
+            imgQR.src = url;
+
+            imgQR.onload = function() {
+                updateQRPosition();
+                document.getElementById("btn-tai-anh").style.display = "flex";
+                btnText.textContent = "LÀM MỚI";
+                spinner.style.display = "none";
+                btn.disabled = false;
+            };
+            
+            imgQR.onerror = () => { alert("Lỗi kết nối SePay!"); spinner.style.display="none"; btn.disabled=false; };
+        }
+
+        function taiAnhCanvas(btn) {
+            const originalText = btn.innerHTML;
+            btn.innerHTML = "ĐANG XỬ LÝ...";
+            btn.disabled = true;
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const bgImg = document.getElementById('anh-nen-goc');
+            const qrImg = document.getElementById('ma-qr-dong');
+
+            if (bgImg.naturalWidth === 0) { alert("Ảnh chưa tải xong!"); btn.disabled = false; return; }
+
+            canvas.width = bgImg.naturalWidth;
+            canvas.height = bgImg.naturalHeight;
+            ctx.drawImage(bgImg, 0, 0);
+
+            const boxW = canvas.width * QR_CONFIG.width; 
+            const boxH = boxW; 
+            const boxX = canvas.width * QR_CONFIG.left; 
+            const boxY = canvas.height * QR_CONFIG.top;
+
+            // Vẽ QR
+            ctx.drawImage(qrImg, boxX, boxY, boxW, boxH);
+
+            try {
+                const link = document.createElement('a');
+                link.download = `VNeID_SePay_${Date.now()}.jpg`;
+                link.href = canvas.toDataURL("image/jpeg", 0.95);
+                link.click();
+            } catch (e) {
+                alert("Lỗi bảo mật CORS. Hãy chạy trên Live Server!");
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        }
+    </script>
+</body>
+</html>

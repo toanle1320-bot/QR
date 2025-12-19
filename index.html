@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hệ Thống Tạo QR VNeID (Final Fix)</title>
+    <title>Mã Là Anh Em by Khiemdz</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary-color: #b0151b; --secondary-color: #0f172a; --bg-color: #f1f5f9; --border-color: #e2e8f0; --radius: 12px; }
@@ -22,7 +22,7 @@
             mix-blend-mode: normal;
             box-sizing: border-box; 
             border-radius: 2px;
-            display: none;
+            display: none; /* Mặc định phải ẩn */
             z-index: 10;
         }
 
@@ -35,7 +35,6 @@
         
         .input-group input, .input-group select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; background-color: #f8fafc; box-sizing: border-box; }
         
-        /* --- GIẢI PHÁP CSS: Tự động in hoa khi nhập tên --- */
         #ten-tk { text-transform: uppercase; }
 
         .btn-group { display: flex; gap: 15px; margin-top: 10px; }
@@ -60,7 +59,7 @@
         </div>
 
         <div class="form-section">
-            <h2 class="header-title">Cấu hình QR <span>VNeID (Final)</span></h2>
+            <h2 class="header-title">THÔNG TIN <span>VNeID (Final)</span></h2>
             <div class="form-grid">
                 <div class="input-group">
                     <label>Ngân hàng</label>
@@ -71,11 +70,12 @@
                         <option value="ICB">VietinBank</option>
                         <option value="BIDV">BIDV</option>
                         <option value="ACB">ACB</option>
+                        <option value="ABB">ABBANK</option>
                         <option value="TPB">TPBank</option>
                         <option value="VPB">VPBank</option>
                         <option value="STB">Sacombank</option>
                         <option value="VIB">VIB</option>
-                        <option value="ABB">ABBANK</option>
+                        <option value="NAPAS">Napas 247</option>
                     </select>
                 </div>
                 <div class="input-group">
@@ -84,7 +84,7 @@
                 </div>
                 <div class="input-group">
                     <label>Tên chủ tài khoản</label>
-                    <input type="text" id="ten-tk" placeholder="NGUYEN VAN A">
+                    <input type="text" id="ten-tk" placeholder="KHIEM DEP TRAI">
                 </div>
                 <div class="input-group">
                     <label>Số tiền (VNĐ)</label>
@@ -98,17 +98,17 @@
             
             <div class="btn-group full-width">
                 <button class="btn-action btn-create" onclick="taoQR(this)">
-                    <span class="btn-text">TẠO QR NGAY</span><div class="spinner"></div>
+                    <span class="btn-text">TẠO QR</span><div class="spinner"></div>
                 </button>
                 <button class="btn-action btn-download" id="btn-tai-anh" onclick="taiAnhCanvas(this)">
-                    <span>TẢI ẢNH VỀ MÁY (HD)</span>
+                    <span>DOWNLOAD (HD)</span>
                 </button>
             </div>
         </div>
     </div>
 
     <script>
-        // Đã sửa lỗi 28% thành 0.28
+        // Cấu hình vị trí chuẩn (đã chốt)
         const QR_CONFIG = { 
             top: 0.243, 
             left: 0.009, 
@@ -118,16 +118,16 @@
         function removeVietnameseTones(str) {
             return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
         }
-        
-        // --- XÓA CÁC DÒNG CODE addEventListener("input") CŨ Ở ĐÂY ---
-        // Chúng ta không can thiệp khi gõ nữa để tránh lỗi nhảy chữ.
 
         function updateQRPosition() {
             const qrElem = document.getElementById("ma-qr-dong");
             qrElem.style.top = (QR_CONFIG.top * 100) + "%";
             qrElem.style.left = (QR_CONFIG.left * 100) + "%";
             qrElem.style.width = (QR_CONFIG.width * 100) + "%";
-            qrElem.style.display = "block";
+            // CHỈ hiện QR khi đã có link (onload)
+            if(qrElem.src && qrElem.src !== window.location.href) {
+                 qrElem.style.display = "block";
+            }
         }
         window.addEventListener('resize', updateQRPosition);
 
@@ -136,14 +136,12 @@
                 bank: document.getElementById("ngan-hang").value,
                 acc: document.getElementById("so-tai-khoan").value,
                 amount: document.getElementById("tien").value,
-                // Lấy giá trị thô từ ô nhập liệu
                 rawName: document.getElementById("ten-tk").value,
                 rawContent: document.getElementById("noi-dung").value
             };
 
             if (!inputs.acc || !inputs.amount) { alert("Vui lòng nhập đủ thông tin!"); return; }
 
-            // --- XỬ LÝ DỮ LIỆU TẠI ĐÂY (Thay vì lúc gõ) ---
             const cleanName = removeVietnameseTones(inputs.rawName).toUpperCase();
             const cleanContent = removeVietnameseTones(inputs.rawContent);
 
@@ -153,14 +151,16 @@
             spinner.style.display = "block";
             btn.disabled = true;
 
-            // Sử dụng dữ liệu đã làm sạch để tạo Link
             const url = `https://qr.sepay.vn/img?acc=${inputs.acc}&bank=${inputs.bank}&amount=${inputs.amount}&des=${encodeURIComponent(cleanContent)}&template=qronly&t=${Date.now()}`;
             
             const imgQR = document.getElementById("ma-qr-dong");
             imgQR.src = url;
 
             imgQR.onload = function() {
+                // Đảm bảo QR hiện ra và đúng vị trí
+                imgQR.style.display = "block";
                 updateQRPosition();
+                
                 document.getElementById("btn-tai-anh").style.display = "flex";
                 btnText.textContent = "LÀM MỚI";
                 spinner.style.display = "none";
@@ -191,7 +191,6 @@
             const boxX = canvas.width * QR_CONFIG.left; 
             const boxY = canvas.height * QR_CONFIG.top;
 
-            // Vẽ QR
             ctx.drawImage(qrImg, boxX, boxY, boxW, boxH);
 
             try {

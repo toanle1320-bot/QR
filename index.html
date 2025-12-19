@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Tạo QR VNeID (Final Fix)</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root { --primary-color: #b0151b; --secondary-color: #0f172a; --bg-color: #f1f5f9; --border-color: #e2e8f0; --radius: 12px; }
@@ -74,7 +75,7 @@
                         <option value="VPB">VPBank</option>
                         <option value="STB">Sacombank</option>
                         <option value="VIB">VIB</option>
-                        <option value="NAPAS">Napas 247</option>
+                        <option value="ABB">ABBANK</option>
                     </select>
                 </div>
                 <div class="input-group">
@@ -83,6 +84,7 @@
                 </div>
                 <div class="input-group">
                     <label>Tên chủ tài khoản</label>
+                    <input type="text" id="ten-tk" placeholder="NGUYEN VAN A">
                 </div>
                 <div class="input-group">
                     <label>Số tiền (VNĐ)</label>
@@ -96,14 +98,17 @@
             
             <div class="btn-group full-width">
                 <button class="btn-action btn-create" onclick="taoQR(this)">
+                    <span class="btn-text">TẠO QR NGAY</span><div class="spinner"></div>
                 </button>
                 <button class="btn-action btn-download" id="btn-tai-anh" onclick="taiAnhCanvas(this)">
+                    <span>TẢI ẢNH VỀ MÁY (HD)</span>
                 </button>
             </div>
         </div>
     </div>
 
     <script>
+        // Đã sửa lỗi 28% thành 0.28
         const QR_CONFIG = { 
             top: 0.243, 
             left: 0.009, 
@@ -113,6 +118,9 @@
         function removeVietnameseTones(str) {
             return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/đ/g, 'd').replace(/Đ/g, 'D');
         }
+        
+        // --- XÓA CÁC DÒNG CODE addEventListener("input") CŨ Ở ĐÂY ---
+        // Chúng ta không can thiệp khi gõ nữa để tránh lỗi nhảy chữ.
 
         function updateQRPosition() {
             const qrElem = document.getElementById("ma-qr-dong");
@@ -128,12 +136,14 @@
                 bank: document.getElementById("ngan-hang").value,
                 acc: document.getElementById("so-tai-khoan").value,
                 amount: document.getElementById("tien").value,
+                // Lấy giá trị thô từ ô nhập liệu
                 rawName: document.getElementById("ten-tk").value,
                 rawContent: document.getElementById("noi-dung").value
             };
 
             if (!inputs.acc || !inputs.amount) { alert("Vui lòng nhập đủ thông tin!"); return; }
 
+            // --- XỬ LÝ DỮ LIỆU TẠI ĐÂY (Thay vì lúc gõ) ---
             const cleanName = removeVietnameseTones(inputs.rawName).toUpperCase();
             const cleanContent = removeVietnameseTones(inputs.rawContent);
 
@@ -143,6 +153,7 @@
             spinner.style.display = "block";
             btn.disabled = true;
 
+            // Sử dụng dữ liệu đã làm sạch để tạo Link
             const url = `https://qr.sepay.vn/img?acc=${inputs.acc}&bank=${inputs.bank}&amount=${inputs.amount}&des=${encodeURIComponent(cleanContent)}&template=qronly&t=${Date.now()}`;
             
             const imgQR = document.getElementById("ma-qr-dong");
